@@ -55,14 +55,26 @@ def _load_exempi():
             if os.path.exists('/opt/local/lib/libexempi.dylib'):
                 # MacPorts starndard location.
                 path = '/opt/local/lib/libexempi.dylib'
-            
-    if path is None:
-        raise ExempiLoadError('Exempi library not found.')
 
-    if os.name != "nt":
-        EXEMPI = ctypes.CDLL(path)
-    else:
-        EXEMPI = ctypes.WinDLL(path)
+    EXEMPI = None
+    try:
+        if path is not None:
+            if os.name == "nt":
+                EXEMPI = ctypes.WinDLL(path)
+            else:
+                EXEMPI = ctypes.CDLL(path)
+    except OSError:
+        pass
+
+    if EXEMPI is None and 'LD_LIBRARY_PATH' in os.environ:
+        for p in os.environ['LD_LIBRARY_PATH'].split(':'):
+            try:
+                EXEMPI = ctypes.CDLL(os.path.join(p, 'libexempi.so'))
+            except OSError:
+                pass
+
+    if EXEMPI is None:
+        raise ExempiLoadError('Exempi library not found.')
 
     return EXEMPI
 
